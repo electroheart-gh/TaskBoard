@@ -20,13 +20,6 @@ class HoverBehavior:
     """
 
     hovered = BooleanProperty(False)
-    border_point = ObjectProperty(None)
-
-    topmost = True
-
-    '''Contains the last relevant point received by the Hoverable. This can
-    be used in `on_enter` or `on_leave` in order to know where was dispatched the event.
-    '''
 
     def __init__(self, **kwargs):
         Window.bind(mouse_pos=self.on_mouse_pos)
@@ -72,12 +65,6 @@ if __name__ == '__main__':
     class HoverLabel(Label, HoverBehavior):
         def on_hovered(self, *args):
             print("on_hovered", args)
-
-        def on_enter(self, *args):
-            print("You are in, through this point", self.border_point)
-
-        def on_leave(self, *args):
-            print("You left through this point", self.border_point)
 
 
     Builder.load_string('''

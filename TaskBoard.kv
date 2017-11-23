@@ -27,6 +27,15 @@ Board:
             text: 'Kivy %s - Task Board' % kivy.__version__
 
 
+<SelectBox>:
+    size_hint: None, None
+    canvas.before:
+        Color:
+            rgba: 1, 1, 1, 0.1
+        Rectangle:
+            size: self.size
+
+
 <Task>:
     # each time a picture is created, the image can delay the loading
     # as soon as the image is loaded, ensure that the center is changed
@@ -38,10 +47,10 @@ Board:
 
     canvas.before:
         Color:
-            rgba: 1,1,1,0.2
+            rgba: (1, 1, 1, 0.3) if self.hovered else (1, 1, 1, 0.2)
         Rectangle:
 #            pos: root.pos
-            size: self.size if self.hovered else (0,0)
+            size: self.size if self.hovered or self.selected else (0,0)
 #    on_pos: print("position changed !")
 
 
@@ -81,7 +90,7 @@ Board:
             halign: 'center'
             text_size: self.size
 #            font_name: 'msgothic.ttc'
-            font_size: 9
+            font_size: 11
 
 #             add shadow background
 #            canvas.before:

@@ -1,3 +1,5 @@
+from kivy.config import Config
+
 import os
 
 import win32api
@@ -13,6 +15,7 @@ from kivy.core.window import Window
 from kivy.properties import StringProperty, ObjectProperty, NumericProperty, BooleanProperty
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.scatter import Scatter
+# from kivy.uix.widget import Widget
 from win32comext.shell import shell
 
 from hover import HoverBehavior
@@ -20,6 +23,7 @@ from hover import HoverBehavior
 #######################################
 #
 #######################################
+Config.set('input', 'mouse', 'mouse,multitouch_on_demand')
 
 #######################################
 # Constants
@@ -104,7 +108,10 @@ def get_hicon_from_exe(hwnd):
 #######################################
 class Board(FloatLayout):
     """A board to attach task labels on."""
-    focus = BooleanProperty()
+
+    # focus = BooleanProperty(False)
+    selecting = BooleanProperty(False)
+    select_box = ObjectProperty(None)
 
     def propose_pos(self):
         try:
@@ -116,27 +123,89 @@ class Board(FloatLayout):
             prop_x = 0
             prop_y += self.children[0].height
 
-        return prop_x, prop_y
+        return prop_x, max(prop_y, 20)
 
-    def update_contents(self, *args):
-        """Get the task list and attach the labels for them."""
+    def redraw(self, *args):
+        """According to the windows status, update the task_name, add or remove the Tasks."""
 
         new_hwnd_set = set(get_task_list_as_hwnd())
-
-        for c in self.children[:]:
-            if type(c) == Task:
-                if c.window_handle in new_hwnd_set:
-                    new_hwnd_set.remove(c.window_handle)
-                    c.task_name = win32gui.GetWindowText(c.window_handle)
-                else:
-                    self.remove_widget(c)
+        for c in filter(lambda x: isinstance(x, Task), self.children[:]):
+            if c.window_handle in new_hwnd_set:
+                new_hwnd_set.remove(c.window_handle)
+                c.task_name = win32gui.GetWindowText(c.window_handle)
+            else:
+                self.remove_widget(c)
 
         for wh in new_hwnd_set:
             tsk = Task(window_handle=wh, task_name=win32gui.GetWindowText(wh), icon_source=get_icon_from_window(wh))
             tsk.pos = self.propose_pos()
             self.add_widget(tsk)
 
-            Window.bind(focus=self.update_contents)
+            Window.bind(focus=self.redraw)
+
+    def draw_select_box(self, touch):
+
+        # Initialize Select Box
+        # if self.select_box is None:
+        #     self.select_box = SelectBox(size=(0, 0))
+        #     self.add_widget(self.select_box)
+
+        # Draw Select Box
+        left = min(touch.x, touch.ox)
+        bottom = min(touch.y, touch.oy)
+        width = abs(touch.x - touch.ox)
+        height = abs(touch.y - touch.oy)
+
+        self.select_box.pos = left, bottom
+        self.select_box.size = width, height
+
+        # Select task
+        for c in filter(lambda x: isinstance(x, Task), self.children):
+            if c.collide_widget(self.select_box):
+                c.selected = True
+            else:
+                c.selected = False
+
+        return None
+
+    def on_touch_down(self, touch):
+        super().on_touch_down(touch)
+
+        # If not clicking on a task icon, initialize select box
+        for c in filter(lambda x: isinstance(x, Task), self.children[:]):
+            if c.collide_point(*touch.pos):
+                if not c.selected:
+                    self.select_box = SelectBox(size=(0, 0))
+                    self.draw_select_box(touch)
+                break
+        else:
+            self.selecting = True
+            self.select_box = SelectBox(size=(0, 0))
+            self.add_widget(self.select_box)
+            self.draw_select_box(touch)
+
+        return False
+
+    def on_touch_move(self, touch):
+        super().on_touch_move(touch)
+        if self.selecting:
+            self.draw_select_box(touch)
+        return False
+
+    def on_touch_up(self, touch):
+        super().on_touch_up(touch)
+
+        # Clean up select box
+        if self.selecting:
+            self.draw_select_box(touch)
+            self.remove_widget(self.select_box)
+            self.selecting = False
+
+        return False
+
+
+class SelectBox(Scatter):
+    pass
 
 
 class Task(Scatter, HoverBehavior):
@@ -147,6 +216,7 @@ class Task(Scatter, HoverBehavior):
     window_handle = NumericProperty(0)
     task_name = StringProperty(None)
     icon_source = ObjectProperty(None)
+    selected = BooleanProperty(False)
 
     # def init_pos(self):
     #     init_x = max([c.right for c in self.parent.children])
@@ -162,29 +232,23 @@ class Task(Scatter, HoverBehavior):
     def on_task_name(self, instance, hwnd):
         print(self.task_name)
 
-    # def on_pos(self, instance, hwnd):
-    #     print("size: ", instance.size)
-    #     print("pos: ", instance.pos)
-
-    # def on_press(self):
-    #     print("pressed")
-
     def on_touch_down(self, touch):
-        if self.collide_point(*touch.pos):
-            ret = super().on_touch_down(touch)
-            # print("touch down!", touch.ox, touch.x)
-            return ret
-        else:
-            return False
+        super().on_touch_down(touch)
+        print("touch down on task")
+
+    def on_touch_move(self, touch):
+        super().on_touch_move(touch)
+        if self.selected and not self.parent.selecting and self.parent.children[0] is not self:
+            self.x += touch.dx
+            self.y += touch.dy
+        return False
 
     def on_touch_up(self, touch):
+        super().on_touch_up(touch)
         if self.collide_point(*touch.pos):
-            ret = super().on_touch_up(touch)
-            # print("touch up!", touch.ox, touch.x, self)
-
             if touch.is_mouse_scrolling:
                 print("touch up!", touch.ox, touch.x, self)
-            elif touch.ox == touch.x:
+            elif touch.opos == touch.pos:
                 # ret = win32gui.BringWindowToTop(self.window_handle)
                 # print("ShowWindow: ", ret)
                 # ret = win32gui.SetWindowPlacement(self.window_handle, placement)
@@ -197,7 +261,6 @@ class Task(Scatter, HoverBehavior):
                         ret = win32gui.ShowWindow(self.window_handle, win32con.SW_MAXIMIZE)
                     else:
                         ret = win32gui.ShowWindow(self.window_handle, win32con.SW_RESTORE)
-                print("ShowWindow: ", ret)
                 ret = win32gui.SetForegroundWindow(self.window_handle)
                 print("SetForegroundWindow: ", ret)
 
@@ -222,7 +285,7 @@ class TaskBoardApp(App):
         # Window.bind(focus=lambda x, y: print("on_focus"))
 
         # Attaching task labels on the board.
-        self.root.update_contents()
+        self.root.redraw()
         return self.root
 
         # Attaching task labels on the board.
