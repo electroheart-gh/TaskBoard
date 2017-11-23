@@ -21,14 +21,14 @@ from win32comext.shell import shell
 from hover import HoverBehavior
 
 #######################################
-#
+# Kivy Config
 #######################################
 Config.set('input', 'mouse', 'mouse,multitouch_on_demand')
 
 #######################################
 # Constants
 #######################################
-
+# Windows
 GW_OWNER = win32con.GW_OWNER
 GWL_EXSTYLE = win32con.GWL_EXSTYLE
 WS_EX_TOOLWINDOW = win32con.WS_EX_TOOLWINDOW
@@ -41,8 +41,10 @@ SW_RESTORE = win32con.SW_RESTORE
 WPF_RESTORETOMAXIMIZED = win32con.WPF_RESTORETOMAXIMIZED
 SW_SHOWMINIMIZED = win32con.SW_SHOWMINIMIZED
 
+# TaskBoard default values
 TASK_WIDTH = 100
 TASK_HEIGHT = 50
+INITIAL_PLACE_HEIGT = 100  #
 
 
 #######################################
@@ -123,7 +125,7 @@ class Board(FloatLayout):
             prop_x = 0
             prop_y += self.children[0].height
 
-        return prop_x, max(prop_y, 20)
+        return prop_x, max(prop_y, INITIAL_PLACE_HEIGT)
 
     def redraw(self, *args):
         """According to the windows status, update the task_name, add or remove the Tasks."""
@@ -233,22 +235,41 @@ class Task(Scatter, HoverBehavior):
         print(self.task_name)
 
     def on_touch_down(self, touch):
-        super().on_touch_down(touch)
-        print("touch down on task")
+        """Return the result of super() in order to work translation as scatter expected.
+
+        If returning false, translation works for all overlapped widgets."""
+        # Need to return the result of super() otherwise translating overlapped scatters
+        # by dragging and touch work strangely
+        return super().on_touch_down(touch)
+        # print("touch down on task")
 
     def on_touch_move(self, touch):
+        """Return False always.
+
+        It is because touch-move action should be broadcasted to all task widgets."""
+
         super().on_touch_move(touch)
+
         if self.selected and not self.parent.selecting and self.parent.children[0] is not self:
+            # print(self.task_name, self.parent.children[0].task_name)
             self.x += touch.dx
             self.y += touch.dy
+
         return False
 
     def on_touch_up(self, touch):
+        """Return true when the touch collides self.
+
+        It is because only one task window should be activated at one time."""
+
         super().on_touch_up(touch)
         if self.collide_point(*touch.pos):
             if touch.is_mouse_scrolling:
-                print("touch up!", touch.ox, touch.x, self)
+                # Nothing to do
+                # print("touch up!", touch.ox, touch.x, self)
+                pass
             elif touch.opos == touch.pos:
+                # if it is _click_, make it foreground regardless of the window state
                 # ret = win32gui.BringWindowToTop(self.window_handle)
                 # print("ShowWindow: ", ret)
                 # ret = win32gui.SetWindowPlacement(self.window_handle, placement)
