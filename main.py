@@ -298,9 +298,10 @@ class TaskBoardApp(App):
         #
         # Config the Window
         # Window.fullscreen = 'auto'
-        Window.top = 300
-        Window.left = 100
-        Window.size = 1000, 500
+        # Window.top = 300
+        # Window.left = 100
+        # Window.size = 1000, 500
+        Window.maximize()
 
         # Window.bind(mouse_pos=lambda x, y: print("on_show"))
         # Window.bind(focus=lambda x, y: print("on_focus"))

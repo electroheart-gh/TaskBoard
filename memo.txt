@@ -1,0 +1,62 @@
+
+TASK BOARD
+
+
+User Interface - display movable window icons
+
+    Update task icon by right-click menu on TaskBoard
+    Close task icon by right-click menu on Task
+
+
+    Update task icon by double-click on TaskBoard
+
+    Initialize task board by right double-click on TaskBoard
+    Align icons to grid
+
+
+    Scroll by mouse-wheel and dragging freely
+    Go back to start point (left-bottom) by double-click on board
+
+    scaling contents?
+    scaling icon?
+
+
+    <Done>
+    Resolved problem for overlapped scatters
+
+    Select multiple icons by dragging to move them at once
+    Resolve duplication of highlighted icon
+
+    Create, move, icons
+        Kivy Scatter widget
+
+    Initialize icons
+        build(), On_start(), on_resume()
+
+    Click Action
+        GetWindowPlacement()
+        ShowWindow()
+        SetForegroundWindow()
+
+
+Data Management - gather window information
+    Get list of window handle:
+        EnumWindows and GetWindowLong
+
+    Get icon handle:
+        SendMessage or GetClassLong
+        OR GetWindowThreadProcessId, OpenProcess and GetModuleBaseNameA
+
+    Get icon image:
+
+        hdc = win32ui.CreateDCFromHandle(win32gui.GetDC(0))
+        hbmp = win32ui.CreateBitmap()
+        hbmp.CreateCompatibleBitmap(hdc, ico_x, ico_x)
+        hdc = hdc.CreateCompatibleDC()
+        hdc.SelectObject(hbmp)
+        hdc.DrawIcon((0, 0), hIcon)
+
+        Why doing CreateDCFromHandle after GetDC? (getDC returns int CreateDCFromHandle returns object)
+        Why hdc.CreateCompatibleDC() for itself?
+
+    Pass the image to the Kivy Image()
