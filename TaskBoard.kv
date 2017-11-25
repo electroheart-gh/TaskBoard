@@ -100,3 +100,34 @@ Board:
 #                    pos: self.pos
 #                    size: self.size
 
+
+    # Create right-click menu
+    # content = GridLayout(cols=1)
+    # content.add_widget(Label(text='This is a hello world'))
+    # view = ModalView(size_hint=(None, None), size=(256, 256),
+    #                  auto_dismiss=True)
+    # view.add_widget(content)
+
+<MenuModal>
+    size_hint: None, None
+    size: 100, 30
+    auto_dismiss: True
+
+    BoxLayout:
+        orientation: 'vertical'
+        size: 100, 30
+
+        Button:
+            id: close
+            text: root.title
+            font_name: 'meiryo.ttc'
+            font_size: 11
+            # dismiss() on_press makes touch event reach a background widget.
+            # Meanwhile, the timing of root.func() matters little.
+            on_touch_up: root.func()
+            on_touch_up: root.dismiss()
+
+
+
+
+

@@ -12,8 +12,11 @@ import win32process
 
 from kivy.app import App
 from kivy.core.window import Window
-from kivy.properties import StringProperty, ObjectProperty, NumericProperty, BooleanProperty
+from kivy.animation import Animation
+from kivy.properties import StringProperty, ObjectProperty, NumericProperty, BooleanProperty, ListProperty
 from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.gridlayout import GridLayout
+from kivy.uix.modalview import ModalView
 from kivy.uix.scatter import Scatter
 # from kivy.uix.widget import Widget
 from win32comext.shell import shell
@@ -108,12 +111,45 @@ def get_hicon_from_exe(hwnd):
 #######################################
 # Classes
 #######################################
+class MenuModal(ModalView):
+
+    auto_dismiss = True
+    title = StringProperty("")
+    func = ObjectProperty(None)
+
+    def open(self, *largs):
+        """Show the sub menu on the mouse pos.
+
+        See the ModalView source code for details and differences."""
+
+        if self._window is not None:
+            return
+        # search window
+        self._window = self._search_window()
+        if not self._window:
+            return
+        self._window.add_widget(self)
+        self._window.bind(
+            # on_resize=self._align_center,
+            on_resize=self.dismiss,
+            on_keyboard=self._handle_keyboard)
+        # self.center = self._window.center
+        self.x, self.top = self._window.mouse_pos
+        # self.fbind('center', self._align_center)
+        # self.fbind('size', self._align_center)
+        a = Animation(_anim_alpha=1., d=self._anim_duration)
+        a.bind(on_complete=lambda *x: self.dispatch('on_open'))
+        a.start(self)
+        return
+
+
 class Board(FloatLayout):
     """A board to attach task labels on."""
 
     # focus = BooleanProperty(False)
     selecting = BooleanProperty(False)
     select_box = ObjectProperty(None)
+    sub_menu = ObjectProperty(None)
 
     def propose_pos(self):
         try:
@@ -127,7 +163,7 @@ class Board(FloatLayout):
 
         return prop_x, max(prop_y, INITIAL_PLACE_HEIGT)
 
-    def redraw(self, *args):
+    def refresh(self, *args):
         """According to the windows status, update the task_name, add or remove the Tasks."""
 
         new_hwnd_set = set(get_task_list_as_hwnd())
@@ -143,7 +179,7 @@ class Board(FloatLayout):
             tsk.pos = self.propose_pos()
             self.add_widget(tsk)
 
-            Window.bind(focus=self.redraw)
+            Window.bind(focus=self.refresh)
 
     def draw_select_box(self, touch):
 
@@ -171,6 +207,11 @@ class Board(FloatLayout):
         return None
 
     def on_touch_down(self, touch):
+
+        # When right click on board, do nothing
+        if touch.button == 'right':
+            return True
+
         super().on_touch_down(touch)
 
         # If not clicking on a task icon, initialize select box
@@ -195,6 +236,17 @@ class Board(FloatLayout):
         return False
 
     def on_touch_up(self, touch):
+
+        # When right click on board, show menu
+        if touch.button == 'right':
+            # self.refresh()
+            self.sub_menu = MenuModal(title='Refresh', func=self.refresh)
+            # self.sub_menu = MenuModal(title='Redraw', func=self.test)
+            # self.sub_menu.attach_to = Window
+            # self.add_widget(self.sub_menu)
+            self.sub_menu.open()
+            return True
+
         super().on_touch_up(touch)
 
         # Clean up select box
@@ -204,6 +256,9 @@ class Board(FloatLayout):
             self.selecting = False
 
         return False
+
+    def test(self):
+        print("on_press test")
 
 
 class SelectBox(Scatter):
@@ -246,7 +301,7 @@ class Task(Scatter, HoverBehavior):
     def on_touch_move(self, touch):
         """Return False always.
 
-        It is because touch-move action should be broadcasted to all task widgets."""
+        It is because touch-move action should be propagated to all task widgets."""
 
         super().on_touch_move(touch)
 
@@ -307,7 +362,7 @@ class TaskBoardApp(App):
         # Window.bind(focus=lambda x, y: print("on_focus"))
 
         # Attaching task labels on the board.
-        self.root.redraw()
+        self.root.refresh()
         return self.root
 
         # Attaching task labels on the board.
