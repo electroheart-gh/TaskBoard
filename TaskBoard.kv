@@ -9,7 +9,6 @@ Board:
         Rectangle:
             source: 'data/images/background.jpg'
             size: self.size
-
     BoxLayout:
         padding: 10
         spacing: 10
@@ -26,7 +25,6 @@ Board:
             color: (1, 1, 1, .8)
             text: 'Kivy %s - Task Board' % kivy.__version__
 
-
 <SelectBox>:
     size_hint: None, None
     canvas.before:
@@ -35,95 +33,45 @@ Board:
         Rectangle:
             size: self.size
 
-
 <Task>:
-    # each time a picture is created, the image can delay the loading
-    # as soon as the image is loaded, ensure that the center is changed
-    # to the center of the screen.
-#    on_size: self.center = win.Window.center
-#    size: image.size[0]+label.texture_size[0], image.size[1]+label.texture_size[1]
     size: box.size
     size_hint: None, None
-
     canvas.before:
         Color:
             rgba: (1, 1, 1, 0.3) if self.hovered else (1, 1, 1, 0.2)
         Rectangle:
-#            pos: root.pos
             size: self.size if self.hovered or self.selected else (0,0)
-#    on_pos: print("position changed !")
-
-
     BoxLayout:
         id: box
         orientation: 'vertical'
         size: 100, 60
-#        size: image.size
-
         Image:
             id: image
             source: root.icon_source
-
-            # create initial image to be 400 pixels width
-    #        size: 400, 400 / self.image_ratio
-
-#             add shadow background
-            canvas.before:
-#                Color:
-#                    rgba: 1,1,0,.2
-#                Rectangle:
-#                    pos: self.pos
-#                    size: self.size
-#                BorderImage:
-#                    source: 'shadow32.png'
-#                    border: (36,36,36,36)
-#                    size:(self.width, self.height)
-#                    size:(self.width+72, self.height+72)
-#                    pos: (-36,-36)
-
         Label:
             id: label
             text: root.task_name
-            font_name: 'meiryo.ttc'
             size_hint_y: 0.5
             valign: 'top'
             halign: 'center'
             text_size: self.size
+            font_name: 'meiryo.ttc'
 #            font_name: 'msgothic.ttc'
             font_size: 11
-
-#             add shadow background
-#            canvas.before:
-#                Color:
-#                    rgba: 0,1,1,0.2
-#                Rectangle:
-#                    pos: self.pos
-#                    size: self.size
-
-
-    # Create right-click menu
-    # content = GridLayout(cols=1)
-    # content.add_widget(Label(text='This is a hello world'))
-    # view = ModalView(size_hint=(None, None), size=(256, 256),
-    #                  auto_dismiss=True)
-    # view.add_widget(content)
 
 <MenuModal>
     size_hint: None, None
     size: 100, 30
-    auto_dismiss: True
-
     BoxLayout:
         orientation: 'vertical'
         size: 100, 30
-
         Button:
             id: close
             text: root.title
             font_name: 'meiryo.ttc'
             font_size: 11
-            # dismiss() on_press makes touch event reach a background widget.
-            # Meanwhile, the timing of root.func() matters little.
+#             dismiss() on_press makes touch event reach a background widget.
+#             Meanwhile, the timing of root.func() matters little.
             on_touch_up: root.func()
             on_touch_up: root.dismiss()
 

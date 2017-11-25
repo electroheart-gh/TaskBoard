@@ -13,12 +13,10 @@ import win32process
 from kivy.app import App
 from kivy.core.window import Window
 from kivy.animation import Animation
-from kivy.properties import StringProperty, ObjectProperty, NumericProperty, BooleanProperty, ListProperty
+from kivy.properties import StringProperty, ObjectProperty, NumericProperty, BooleanProperty
 from kivy.uix.floatlayout import FloatLayout
-from kivy.uix.gridlayout import GridLayout
 from kivy.uix.modalview import ModalView
 from kivy.uix.scatter import Scatter
-# from kivy.uix.widget import Widget
 from win32comext.shell import shell
 
 from hover import HoverBehavior
@@ -47,7 +45,7 @@ SW_SHOWMINIMIZED = win32con.SW_SHOWMINIMIZED
 # TaskBoard default values
 TASK_WIDTH = 100
 TASK_HEIGHT = 50
-INITIAL_PLACE_HEIGT = 100  #
+INITIAL_PLACE_HEIGT = 100
 
 
 #######################################
@@ -55,22 +53,31 @@ INITIAL_PLACE_HEIGT = 100  #
 #######################################
 
 def get_task_list_as_hwnd():
-    """Return list of window handles which should be the task."""
+    """Return list of window handles which should be the task.
 
+    The task should match all the following conditions:
+        - Visible
+        - Non child, which means it does not have the owner window
+        - Non untitled system window, which means it is not a window like the property window"""
+
+    # Callback function
+    # Append the window handle to the outer scope var 'task_list_as_hwnd', if it should be the task.
     def accumulate_hwnd_for_task(hwnd, extra):
-        """Append the window handle to the outer scope variable, if it should be the task."""
         if win32gui.IsWindowVisible(hwnd) and win32gui.GetWindow(hwnd, GW_OWNER) == 0 \
                 and win32gui.GetWindowLong(hwnd, GWL_EXSTYLE) & (WS_EX_NOREDIRECTIONBITMAP | WS_EX_TOOLWINDOW) == 0:
-            # title.append(win32gui.GetWindowText(hwnd))
-            # print(win32gui.GetWindowText(hwnd))
             task_list_as_hwnd.append(hwnd)
 
+    # main logic
     task_list_as_hwnd = []
     win32gui.EnumWindows(accumulate_hwnd_for_task, None)
     return task_list_as_hwnd
 
 
 def get_icon_from_window(hwnd):
+    """Create the icon file in a temp directory for the window handle and return its path.
+
+    Actually, it is not unclear how the Windows API works to retrieve the icon info and save it as icon.
+    """
     hicon = win32api.SendMessage(hwnd, win32con.WM_GETICON, win32con.ICON_BIG)
     if hicon == 0:
         hicon = win32api.SendMessage(hwnd, win32con.WM_GETICON, win32con.ICON_SMALL)
@@ -112,15 +119,17 @@ def get_hicon_from_exe(hwnd):
 # Classes
 #######################################
 class MenuModal(ModalView):
-
+    # super class's kivy properties
     auto_dismiss = True
+
+    # kivy properties
     title = StringProperty("")
     func = ObjectProperty(None)
 
     def open(self, *largs):
         """Show the sub menu on the mouse pos.
 
-        See the ModalView source code for details and differences."""
+        See the source code of ModalView for details and differences."""
 
         if self._window is not None:
             return
@@ -144,9 +153,8 @@ class MenuModal(ModalView):
 
 
 class Board(FloatLayout):
-    """A board to attach task labels on."""
+    """A board to attach task icons."""
 
-    # focus = BooleanProperty(False)
     selecting = BooleanProperty(False)
     select_box = ObjectProperty(None)
     sub_menu = ObjectProperty(None)
@@ -164,7 +172,7 @@ class Board(FloatLayout):
         return prop_x, max(prop_y, INITIAL_PLACE_HEIGT)
 
     def refresh(self, *args):
-        """According to the windows status, update the task_name, add or remove the Tasks."""
+        """According to the windows status, add or remove the tasks, and update the task_name."""
 
         new_hwnd_set = set(get_task_list_as_hwnd())
         for c in filter(lambda x: isinstance(x, Task), self.children[:]):
@@ -183,12 +191,7 @@ class Board(FloatLayout):
 
     def draw_select_box(self, touch):
 
-        # Initialize Select Box
-        # if self.select_box is None:
-        #     self.select_box = SelectBox(size=(0, 0))
-        #     self.add_widget(self.select_box)
-
-        # Draw Select Box
+        # Draw the Select Box
         left = min(touch.x, touch.ox)
         bottom = min(touch.y, touch.oy)
         width = abs(touch.x - touch.ox)
@@ -197,16 +200,17 @@ class Board(FloatLayout):
         self.select_box.pos = left, bottom
         self.select_box.size = width, height
 
-        # Select task
+        # Select tasks
         for c in filter(lambda x: isinstance(x, Task), self.children):
             if c.collide_widget(self.select_box):
                 c.selected = True
             else:
                 c.selected = False
 
-        return None
-
     def on_touch_down(self, touch):
+        """Always return True for the time being.
+
+        It does not matter because the Board is on the most background."""
 
         # When right click on board, do nothing
         if touch.button == 'right':
@@ -214,36 +218,36 @@ class Board(FloatLayout):
 
         super().on_touch_down(touch)
 
-        # If not clicking on a task icon, initialize select box
+        # Depending on what object is clicked, do the right behavior
         for c in filter(lambda x: isinstance(x, Task), self.children[:]):
             if c.collide_point(*touch.pos):
+                # If clicking on a unselected task, minimize the select box to select only the one
                 if not c.selected:
                     self.select_box = SelectBox(size=(0, 0))
                     self.draw_select_box(touch)
+                # If clicking on any task, break without drawing the select box
                 break
+        # If clicking on the board, minimize the select box to redraw and deselect all tasks
         else:
             self.selecting = True
             self.select_box = SelectBox(size=(0, 0))
             self.add_widget(self.select_box)
             self.draw_select_box(touch)
 
-        return False
+        return True
 
     def on_touch_move(self, touch):
         super().on_touch_move(touch)
         if self.selecting:
             self.draw_select_box(touch)
-        return False
+        return True
 
     def on_touch_up(self, touch):
 
-        # When right click on board, show menu
+        # When right click on board, show sub menu
         if touch.button == 'right':
-            # self.refresh()
+            # ToDo: change refresh to redraw
             self.sub_menu = MenuModal(title='Refresh', func=self.refresh)
-            # self.sub_menu = MenuModal(title='Redraw', func=self.test)
-            # self.sub_menu.attach_to = Window
-            # self.add_widget(self.sub_menu)
             self.sub_menu.open()
             return True
 
@@ -255,10 +259,7 @@ class Board(FloatLayout):
             self.remove_widget(self.select_box)
             self.selecting = False
 
-        return False
-
-    def test(self):
-        print("on_press test")
+        return True
 
 
 class SelectBox(Scatter):
@@ -266,42 +267,29 @@ class SelectBox(Scatter):
 
 
 class Task(Scatter, HoverBehavior):
-    """A label representing a window to work on."""
+    """An icon representing a window that is displayed on the Windows task bar."""
 
+    # super class's kivy property
     do_rotation = False
 
+    # kivy property
     window_handle = NumericProperty(0)
     task_name = StringProperty(None)
     icon_source = ObjectProperty(None)
     selected = BooleanProperty(False)
 
-    # def init_pos(self):
-    #     init_x = max([c.right for c in self.parent.children])
-    #     init_y = max([c.y for c in self.parent.children])
-    #     print("xy: ", init_x, init_y)
-    #     return init_x, init_y
-
-    def on_window_handle(self, instance, hwnd):
-        print(self.task_name)
-        # self.task_name = win32gui.GetWindowText(hwnd)
-        # self.icon_source = get_icon_from_window(hwnd)
-
-    def on_task_name(self, instance, hwnd):
-        print(self.task_name)
-
     def on_touch_down(self, touch):
-        """Return the result of super() in order to work translation as scatter expected.
+        """Call super class method since nothing to do special.
 
+        Return the result of super() in order to work translation as scatter expected.
         If returning false, translation works for all overlapped widgets."""
-        # Need to return the result of super() otherwise translating overlapped scatters
-        # by dragging and touch work strangely
+
         return super().on_touch_down(touch)
-        # print("touch down on task")
 
     def on_touch_move(self, touch):
-        """Return False always.
+        """Return False for the left-button move.
 
-        It is because touch-move action should be propagated to all task widgets."""
+        It is because move action should be propagated to all task widgets."""
 
         super().on_touch_move(touch)
 
@@ -313,33 +301,27 @@ class Task(Scatter, HoverBehavior):
         return False
 
     def on_touch_up(self, touch):
-        """Return true when the touch collides self.
+        """Return true when the touch collides me.
 
         It is because only one task window should be activated at one time."""
 
         super().on_touch_up(touch)
         if self.collide_point(*touch.pos):
             if touch.is_mouse_scrolling:
-                # Nothing to do
-                # print("touch up!", touch.ox, touch.x, self)
+                # Nothing to do for future use
                 pass
             elif touch.opos == touch.pos:
-                # if it is _click_, make it foreground regardless of the window state
-                # ret = win32gui.BringWindowToTop(self.window_handle)
-                # print("ShowWindow: ", ret)
-                # ret = win32gui.SetWindowPlacement(self.window_handle, placement)
-                # print("SetWindowPlacement: ", ret)
-
+                # If it is _click_, make it foreground regardless of the window state
                 placement = win32gui.GetWindowPlacement(self.window_handle)
-                print("placement: ", placement)
+                # print("placement: ", placement)
                 if placement[1] & SW_SHOWMINIMIZED:
                     if placement[0] & WPF_RESTORETOMAXIMIZED:
-                        ret = win32gui.ShowWindow(self.window_handle, win32con.SW_MAXIMIZE)
+                        # Before minimized, it was maximized
+                        win32gui.ShowWindow(self.window_handle, win32con.SW_MAXIMIZE)
                     else:
-                        ret = win32gui.ShowWindow(self.window_handle, win32con.SW_RESTORE)
-                ret = win32gui.SetForegroundWindow(self.window_handle)
-                print("SetForegroundWindow: ", ret)
-
+                        # Before minimized, it was not maximized
+                        win32gui.ShowWindow(self.window_handle, win32con.SW_RESTORE)
+                win32gui.SetForegroundWindow(self.window_handle)
             return True
         else:
             return False
@@ -347,54 +329,17 @@ class Task(Scatter, HoverBehavior):
 
 class TaskBoardApp(App):
     def build(self):
-        """Assuming Kivy Window and widget tree in kv file initiated first,
-        then configure the Window and attach the task labels on the board.
-        """
-        #
         # Config the Window
-        # Window.fullscreen = 'auto'
-        # Window.top = 300
-        # Window.left = 100
-        # Window.size = 1000, 500
         Window.maximize()
-
-        # Window.bind(mouse_pos=lambda x, y: print("on_show"))
-        # Window.bind(focus=lambda x, y: print("on_focus"))
 
         # Attaching task labels on the board.
         self.root.refresh()
         return self.root
 
-        # Attaching task labels on the board.
-        # board = self.root  # type: Board
-
-        # Get the task list and attach the labels for them.
-        # for wh in get_task_list_as_hwnd():
-        #     tsk = Task(window_handle=wh, task_name=win32gui.GetWindowText(wh), icon_source=get_icon_from_window(wh))
-        #     tsk.pos = board.propose_pos()
-        #     board.add_widget(tsk)
-        #
-        # return board
-
-    def on_pause(self):
-        # save board contents
-        print("on_pause")
-
-        return True
-
-    def on_resume(self):
-        # get task list again
-        # load board contents
-        # combine both info
-        return True
-
 
 #######################################
-# Others
+# Run myself
 #######################################
 
 if __name__ == '__main__':
     TaskBoardApp().run()
-    # print_window_titles()
-    # icon32_from_path(r"C:\Users\JUNJI\tools\MSIAfterburnerSetup\MSIAfterburnerSetup430.exe")
-    # icon32_from_path(r"C:\Users\JUNJI\tools\MSIAfterburnerSetup\MSIAfterburnerSetup430.exe")
