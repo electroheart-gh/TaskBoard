@@ -13,10 +13,13 @@ import win32process
 from kivy.app import App
 from kivy.core.window import Window
 from kivy.animation import Animation
-from kivy.properties import StringProperty, ObjectProperty, NumericProperty, BooleanProperty
+from kivy.properties import StringProperty, ObjectProperty, NumericProperty, BooleanProperty, ListProperty
+from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.label import Label
 from kivy.uix.modalview import ModalView
 from kivy.uix.scatter import Scatter
+from kivy.uix.widget import Widget
 from win32comext.shell import shell
 
 from hover import HoverBehavior
@@ -24,7 +27,7 @@ from hover import HoverBehavior
 #######################################
 # Kivy Config
 #######################################
-Config.set('input', 'mouse', 'mouse,multitouch_on_demand')
+Config.set('input', 'mouse', 'mouse,disable_multitouch')
 
 #######################################
 # Constants
@@ -118,6 +121,22 @@ def get_hicon_from_exe(hwnd):
 #######################################
 # Classes
 #######################################
+# class SubMenu(Widget, HoverBehavior):
+#     # kivy properties
+#     text = StringProperty("")
+#     func = ObjectProperty(None)
+#     pos = ListProperty([])
+#
+#     def on_touch_down(self, touch):
+#         if not self.collide_point(*touch.pos):
+#             self.parent.remove_widget(self)
+#
+#     def on_touch_up(self, touch):
+#         if self.collide_point(*touch.pos) and touch.opos == touch.pos:
+#             self.func()
+#         self.parent.remove_widget(self)
+
+
 class MenuModal(ModalView):
     # super class's kivy properties
     auto_dismiss = True
@@ -208,15 +227,11 @@ class Board(FloatLayout):
                 c.selected = False
 
     def on_touch_down(self, touch):
-        """Always return True for the time being.
-
-        It does not matter because the Board is on the most background."""
+        """Return True when clicked on the Board directly."""
 
         # When right click on board, do nothing
-        if touch.button == 'right':
-            return True
-
-        super().on_touch_down(touch)
+        # if touch.button == 'right':
+        #     return True
 
         # Depending on what object is clicked, do the right behavior
         for c in filter(lambda x: isinstance(x, Task), self.children[:]):
@@ -226,32 +241,39 @@ class Board(FloatLayout):
                     self.select_box = SelectBox(size=(0, 0))
                     self.draw_select_box(touch)
                 # If clicking on any task, break without drawing the select box
-                break
-        # If clicking on the board, minimize the select box to redraw and deselect all tasks
+                return super().on_touch_down(touch)
         else:
+            # If clicking on the board, minimize the select box to redraw and deselect all tasks
             self.selecting = True
             self.select_box = SelectBox(size=(0, 0))
             self.add_widget(self.select_box)
             self.draw_select_box(touch)
-
-        return True
-
-    def on_touch_move(self, touch):
-        super().on_touch_move(touch)
-        if self.selecting:
-            self.draw_select_box(touch)
-        return True
-
-    def on_touch_up(self, touch):
-
-        # When right click on board, show sub menu
-        if touch.button == 'right':
-            # ToDo: change refresh to redraw
-            self.sub_menu = MenuModal(title='Refresh', func=self.refresh)
-            self.sub_menu.open()
             return True
 
-        super().on_touch_up(touch)
+    def on_touch_move(self, touch):
+        if self.selecting:
+            self.draw_select_box(touch)
+
+        for c in filter(lambda x: isinstance(x, Task), self.children[:]):
+            if c.selected and not self.selecting and self.children[0] is not c:
+                c.x += touch.dx
+                c.y += touch.dy
+
+        return super().on_touch_move(touch)
+
+    def on_touch_up(self, touch):
+        # print("touch up on board", )
+
+        # When right click on board, show sub menu
+        # if touch.button == 'right':
+        #     # ToDo: change menu from refresh to redraw
+        #     self.sub_menu = MenuModal(title='Refresh', func=self.refresh)
+        #     self.sub_menu.open()
+        #     return True
+
+        if touch.is_mouse_scrolling:
+            # ToDo: implement zoom function
+            return super().on_touch_up(touch)
 
         # Clean up select box
         if self.selecting:
@@ -259,72 +281,113 @@ class Board(FloatLayout):
             self.remove_widget(self.select_box)
             self.selecting = False
 
-        return True
+        for c in filter(lambda x: isinstance(x, Task), self.children[:]):
+            if c.collide_point(*touch.pos):
+                if touch.opos == touch.pos:
+                    # If it is _click_ without move, make it foreground
+                    c.set_foreground_task()
+
+        return super().on_touch_up(touch)
 
 
 class SelectBox(Scatter):
+    """Represent Select Box, which is used to select the task icons to move them together.
+
+    Note that Scatter grabs the touch."""
     pass
 
 
 class Task(Scatter, HoverBehavior):
-    """An icon representing a window that is displayed on the Windows task bar."""
+    """An icon representing a window that is displayed on the Windows task bar.
+
+    Note that Scatter grabs the touch.
+    """
 
     # super class's kivy property
     do_rotation = False
+    # do_translation = False
+    # do_scale = False
 
     # kivy property
     window_handle = NumericProperty(0)
     task_name = StringProperty(None)
     icon_source = ObjectProperty(None)
     selected = BooleanProperty(False)
+    sub_menu = ObjectProperty(None)
 
-    def on_touch_down(self, touch):
-        """Call super class method since nothing to do special.
+    def set_foreground_task(self):
+        """Set the task to foreground regardless of the window state."""
 
-        Return the result of super() in order to work translation as scatter expected.
-        If returning false, translation works for all overlapped widgets."""
+        # Get window status
+        placement = win32gui.GetWindowPlacement(self.window_handle)
+        # print("placement: ", placement)
+        if placement[1] & SW_SHOWMINIMIZED:
+            if placement[0] & WPF_RESTORETOMAXIMIZED:
+                # Before minimized, it was maximized
+                win32gui.ShowWindow(self.window_handle, win32con.SW_MAXIMIZE)
+            else:
+                # Before minimized, it was not maximized
+                win32gui.ShowWindow(self.window_handle, win32con.SW_RESTORE)
+        win32gui.SetForegroundWindow(self.window_handle)
 
-        return super().on_touch_down(touch)
+    def close_task(self):
+        win32gui.PostMessage(self.window_handle, win32con.WM_CLOSE, 0, 0)
 
-    def on_touch_move(self, touch):
-        """Return False for the left-button move.
+    # def on_touch_down(self, touch):
+    #     """Call super class method since nothing to do special.
+    #
+    #     Return the result of super() in order to work translation as scatter expected.
+    #     If returning false, translation works for all overlapped widgets."""
+    #
+    #     return super().on_touch_down(touch)
 
-        It is because move action should be propagated to all task widgets."""
+    # def on_touch_move(self, touch):
+    #     """Return False for the left-button move.
+    #
+    #     It is because move action should be propagated to all task widgets."""
+    #
+    #     super().on_touch_move(touch)
+    #
+    #     if self.selected and not self.parent.selecting and self.parent.children[0] is not self:
+    #         self.x += touch.dx
+    #         self.y += touch.dy
+    #
+    #     return False
 
-        super().on_touch_move(touch)
-
-        if self.selected and not self.parent.selecting and self.parent.children[0] is not self:
-            # print(self.task_name, self.parent.children[0].task_name)
-            self.x += touch.dx
-            self.y += touch.dy
-
-        return False
-
-    def on_touch_up(self, touch):
-        """Return true when the touch collides me.
-
-        It is because only one task window should be activated at one time."""
-
-        super().on_touch_up(touch)
-        if self.collide_point(*touch.pos):
-            if touch.is_mouse_scrolling:
-                # Nothing to do for future use
-                pass
-            elif touch.opos == touch.pos:
-                # If it is _click_, make it foreground regardless of the window state
-                placement = win32gui.GetWindowPlacement(self.window_handle)
-                # print("placement: ", placement)
-                if placement[1] & SW_SHOWMINIMIZED:
-                    if placement[0] & WPF_RESTORETOMAXIMIZED:
-                        # Before minimized, it was maximized
-                        win32gui.ShowWindow(self.window_handle, win32con.SW_MAXIMIZE)
-                    else:
-                        # Before minimized, it was not maximized
-                        win32gui.ShowWindow(self.window_handle, win32con.SW_RESTORE)
-                win32gui.SetForegroundWindow(self.window_handle)
-            return True
-        else:
-            return False
+    # def on_touch_up(self, touch):
+    #     """Return true when the touch collides me.
+    #
+    #     It is because only one task window should be activated at one time."""
+    #
+    #     print("touch up on ", self.task_name, self)
+    #
+    #     # Call super() to prevent unexpected behavior
+    #     print("super() touch up on started", self.task_name, self)
+    #     super().on_touch_up(touch)
+    #     print("super() touch up on finished", self.task_name, self)
+    #
+    #     if touch.button == 'right':
+    #         # self.sub_menu = MenuModal(title='Close', func=self.close_task)
+    #         # self.sub_menu.open()
+    #         sub_menu = MenuModal(title='Close', func=self.close_task)
+    #         sub_menu.open()
+    #
+    #         # self.sub_menu = SubMenu(text='Close', func=self.close_task, pos=self.to_widget(*Window.mouse_pos))
+    #         # self.sub_menu = Label(text='Close', pos=self.to_local(*Window.mouse_pos), size=(100, 30))
+    #         # Window.add_widget(self.sub_menu)
+    #         return True
+    #
+    #     if self.collide_point(*touch.pos):
+    #         if touch.is_mouse_scrolling:
+    #             # Nothing to do for future use
+    #             pass
+    #         elif touch.opos == touch.pos:
+    #             # If it is _click_ without move, make it foreground
+    #             # self.set_foreground_task()
+    #             pass
+    #         return True
+    #     else:
+    #         return False
 
 
 class TaskBoardApp(App):

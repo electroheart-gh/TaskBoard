@@ -1,6 +1,59 @@
 
 TASK BOARD
 
+Architecture - follow the concept of the kivy
+
+
+    Now I understand the touch event bubbling starts from root widget!!
+    And Scatter grabs touch always, which means on_touch_up called twice for the clicked scatter widget
+
+    Make it clear what happens in which widget on what touch event
+        <situations>
+        - left or right button
+        - click or drag (or double click)
+        - on the board, on the selected task or on the unselected task
+
+        <functions>
+        *LEFT*
+        - touch down
+            Deselect/reselect tasks - Click on anywhere other than the selected tasks
+
+        - touch move
+            Resize select Box - Start dragging from the board
+            Select the tasks - Start dragging from the board and collide the box with tasks
+            Move the task -  Start dragging from the task
+            Move the selected tasks - Start dragging from the one of the selected tasks
+
+        - touch up
+            Set foreground the task - left click on the task regardless of selected or not
+            Hide the select box
+
+        *RIGHT*
+        - touch up
+            show close menu - right click on the task
+            show redraw menu - right click on the board
+            enter modal mode - right click anywhere
+
+        Other actions does not matter.
+
+    Full distribution vs full centralization vs partial distribution vs mixed by event
+        CURRENT DESIGN
+        1. In normal case, all on_touch_* processes should be done on root widget
+           and return True.
+           (It is because most of processes need to consider other widget status)
+        2. If needed return super() on_touch_* to propagate the touch.
+        3. Do not use super() on_touch_* outside of return statement.
+
+        May the followings be the basic rule matching concept of kivy architecture?
+        1. Return True or return super() on_touch_*.
+        2. In normal case, return super() after the class-specific process
+           and propagate it to allover the widget tree.
+        3. Return True only if you need it.
+
+    Should all SubMenu on the board?
+
+
+
 
 User Interface - display movable window icons
 
@@ -60,3 +113,5 @@ Data Management - gather window information
         Why hdc.CreateCompatibleDC() for itself?
 
     Pass the image to the Kivy Image()
+
+Considration for the Architecture
