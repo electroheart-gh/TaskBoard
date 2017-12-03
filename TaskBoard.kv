@@ -45,11 +45,9 @@ Board:
         id: box
         orientation: 'vertical'
         size: 100, 60
-        on_touch_up: print("task box layout")
         Image:
             id: image
             source: root.icon_source
-            on_touch_up: print("task image")
         Label:
             id: label
             text: root.task_name
@@ -60,7 +58,6 @@ Board:
             font_name: 'meiryo.ttc'
 #            font_name: 'msgothic.ttc'
             font_size: 11
-            on_touch_up: print("task label")
 
 <MenuModal>
     size_hint: None, None
@@ -73,10 +70,10 @@ Board:
             text: root.title
             font_name: 'meiryo.ttc'
             font_size: 11
-#             dismiss() on_press makes touch event reach a background widget.
-#             Meanwhile, the timing of root.func() matters little.
-            on_press: root.func()
-            on_touch_up: root.dismiss()
+#             dismiss() on_press makes touch event reach a background widget
+#             because on_press works on_touch_down
+            on_release: root.func()
+            on_release: root.dismiss()
 
 
 <SubMenu>
