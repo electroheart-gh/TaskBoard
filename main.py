@@ -24,10 +24,13 @@ from kivy.uix.widget import Widget
 from win32comext.shell import shell
 
 from hover import HoverBehavior
+# from tooltip import TooltipBehavior
 
 #######################################
 # Kivy Config
 #######################################
+
+
 Config.set('input', 'mouse', 'mouse,disable_multitouch')
 
 #######################################
@@ -122,41 +125,6 @@ def get_hicon_from_exe(hwnd):
 #######################################
 # Classes
 #######################################
-
-class MenuModal(ModalView):
-    # super class's kivy properties
-    auto_dismiss = True
-
-    # kivy properties
-    title = StringProperty("")
-    func = ObjectProperty(None)
-
-    def open(self, *largs):
-        """Show the sub menu on the mouse pos.
-
-        See the source code of ModalView for details and differences."""
-
-        if self._window is not None:
-            return
-        # search window
-        self._window = self._search_window()
-        if not self._window:
-            return
-        self._window.add_widget(self)
-        self._window.bind(
-            # on_resize=self._align_center,
-            on_resize=self.dismiss,
-            on_keyboard=self._handle_keyboard)
-        # self.center = self._window.center
-        self.x, self.top = self._window.mouse_pos
-        # self.fbind('center', self._align_center)
-        # self.fbind('size', self._align_center)
-        a = Animation(_anim_alpha=1., d=self._anim_duration)
-        a.bind(on_complete=lambda *x: self.dispatch('on_open'))
-        a.start(self)
-        return
-
-
 class Board(FloatLayout):
     """A board to attach task icons."""
 
@@ -287,7 +255,41 @@ class SelectBox(Scatter):
     pass
 
 
-class Task(Scatter, HoverBehavior):
+class MenuModal(ModalView):
+    # super class's kivy properties
+    auto_dismiss = True
+
+    # kivy properties
+    title = StringProperty("")
+    func = ObjectProperty(None)
+
+    def open(self, *largs):
+        """Show the sub menu on the mouse pos.
+
+        See the source code of ModalView for details and differences."""
+
+        if self._window is not None:
+            return
+        # search window
+        self._window = self._search_window()
+        if not self._window:
+            return
+        self._window.add_widget(self)
+        self._window.bind(
+            # on_resize=self._align_center,
+            on_resize=self.dismiss,
+            on_keyboard=self._handle_keyboard)
+        # self.center = self._window.center
+        self.x, self.top = self._window.mouse_pos
+        # self.fbind('center', self._align_center)
+        # self.fbind('size', self._align_center)
+        a = Animation(_anim_alpha=1., d=self._anim_duration)
+        a.bind(on_complete=lambda *x: self.dispatch('on_open'))
+        a.start(self)
+        return
+
+
+class Task(HoverBehavior, Scatter):
     """An icon representing a window that is displayed on the Windows task bar.
 
     Note that Scatter grabs the touch.
@@ -304,6 +306,8 @@ class Task(Scatter, HoverBehavior):
     icon_source = ObjectProperty(None)
     selected = BooleanProperty(False)
     sub_menu = ObjectProperty(None)
+    label_task_name = ObjectProperty(None)
+    showing_task_name = BooleanProperty(False)
 
     def set_foreground_task(self):
         """Set the task to foreground regardless of the window state."""
@@ -331,6 +335,69 @@ class Task(Scatter, HoverBehavior):
 
         except pywintypes.error:
             pass
+
+    def show_task_name(self):
+        if not self.showing_task_name:
+            self.showing_task_name = True
+            parent = self.parent
+            parent.remove_widget(self)
+            parent.add_widget(self)
+
+            self.label_task_name = TaskNameLabel(text=self.task_name)
+            self.add_widget(self.label_task_name)
+            # self.label_task_name.show()
+
+            # self.get_root_window().add_widget(self.label_task_name)
+            self.label_task_name.pos = self.to_widget(*Window.mouse_pos)
+            # print(Window.mouse_pos, self.to_local(*Window.mouse_pos), self.to_parent(*Window.mouse_pos))
+            # print(self.pos)
+            # self.label_task_name.texture_update()
+            # self.label_task_name.x, self.label_task_name.y = self.to_parent(*Window.mouse_pos)
+            # self.to_parent(*self.to_local(*Window.mouse_pos))
+            # self.label_task_name.x -= Window.width / 2
+            # self.label_task_name.x += self.label_task_name.texture_size[0] / 2
+            # self.label_task_name.y -= Window.height / 2
+            # self.label_task_name.x, self.label_task_name.y = 0,0
+            # print(self.label_task_name.pos)
+            # print(self.label_task_name.texture_size)
+
+    def hide_task_name(self):
+        if self.showing_task_name:
+            self.showing_task_name = False
+            # self.get_root_window().remove_widget(self.label_task_name)
+            self.remove_widget(self.label_task_name)
+            # self.label_task_name.hide()
+
+    def show_tooltip(self, *args):
+        self.show_task_name()
+
+    def hide_tooltip(self, *args):
+        self.hide_task_name()
+
+    def on_hovered(self, instance, value):
+        if value:
+            # self.show_task_name()
+            # self.parent.tooltip = Label(text="test", pos=self.to_parent(*Window.mouse_pos))
+            # self.parent.tooltip_text = self.task_name
+            pass
+        else:
+            # self.parent.tooltip = Label(text="")
+            # self.parent.tooltip_text = ""
+            pass
+
+
+class TaskNameLabel(Label):
+    # showing_task_name = BooleanProperty(False)
+    label_task_name = ObjectProperty(None)
+
+    def show(self):
+        # self.pos = Window.mouse_pos
+        # self.get_root_window().add_widget(self)
+        Window.add_widget(self)
+        self.pos = self.to_widget(*Window.mouse_pos)
+
+    def hide(self):
+        self.get_root_window().remove_widget(self)
 
 
 class TaskBoardApp(App):

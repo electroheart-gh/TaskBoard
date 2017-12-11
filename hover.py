@@ -1,7 +1,7 @@
 """Hover Behaviour
 """
 
-from kivy.properties import BooleanProperty, ObjectProperty
+from kivy.properties import BooleanProperty, ObjectProperty, Clock
 from kivy.core.window import Window
 from kivy.factory import Factory
 
@@ -30,6 +30,10 @@ class HoverBehavior:
             return  # do proceed if I'm not displayed <=> If have no parent
         pos = args[1]
 
+        # implement tooltip behaviour
+        Clock.unschedule(self.show_tooltip)  # cancel scheduled event since I moved the cursor
+        self.hide_tooltip()  # close if it's opened
+
         if not self.collide_point(*pos):
             self.hovered = False
             return self.hovered
@@ -40,6 +44,9 @@ class HoverBehavior:
                 return self.hovered
 
         self.hovered = True
+        # implement tooltip behaviour
+        Clock.schedule_once(self.show_tooltip, 1)
+
         return self.hovered
 
         # if self.collide_point(*pos):
@@ -51,6 +58,12 @@ class HoverBehavior:
         #         self.hovered = True
         # else:
         #     self.hovered = False
+
+    def show_tooltip(self, *args):
+        pass
+
+    def hide_tooltip(self, *args):
+        pass
 
 
 Factory.register('HoverBehavior', HoverBehavior)

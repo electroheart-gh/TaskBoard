@@ -55,6 +55,7 @@ Board:
             valign: 'top'
             halign: 'center'
             text_size: self.size
+#            text_size: (None, None) if root.hovered else self.size
             font_name: 'meiryo.ttc'
 #            font_name: 'msgothic.ttc'
             font_size: 11
@@ -75,24 +76,70 @@ Board:
             on_release: root.func()
             on_release: root.dismiss()
 
+#
+#<SubMenu>
+#    size_hint: None, None
+#    size: 100, 30
+#    BoxLayout:
+#        orientation: 'vertical'
+#        size: 100, 30
+#        pos: self.pos
+#        Label:
+#            id: label
+#            pos: self.pos
+#            text: root.text
+#            size_hint_y: 0.5
+#            valign: 'top'
+#            halign: 'center'
+#            text_size: self.size
+#            font_name: 'meiryo.ttc'
+##            font_name: 'msgothic.ttc'
+#            font_size: 11
 
-<SubMenu>
-    size_hint: None, None
-    size: 100, 30
-    BoxLayout:
-        orientation: 'vertical'
-        size: 100, 30
-        pos: self.pos
-        Label:
-            id: label
-            pos: self.pos
-            text: root.text
-            size_hint_y: 0.5
-            valign: 'top'
-            halign: 'center'
-            text_size: self.size
-            font_name: 'meiryo.ttc'
-#            font_name: 'msgothic.ttc'
-            font_size: 11
+<TaskNameLabel>
+    color: (0, 0, 0, 1)
+    padding: 2, 0
+    size: root.texture_size
+    text_size: None, None
+    font_name: 'meiryo.ttc'
+    font_size: 11
+    canvas.before:
+        Color:
+            rgba: (1, 1, 1, 1)
+        Rectangle:
+            pos: root.pos
+            size: root.texture_size
 
 
+<TooltipLabel>
+    orientation: 'vertical'
+    pos: self.pos
+    Label:
+        pos: root.pos
+        text: root.text
+        color: (0, 0, 0, 1)
+        padding: 2, 0
+        size: self.texture_size
+        text_size: None, None
+        font_name: 'meiryo.ttc'
+        font_size: 11
+        canvas.before:
+            Color:
+                rgba: (1, 1, 1, 1)
+            Rectangle:
+                pos: root.pos
+                size: self.texture_size
+#
+#<TooltipLabel>
+#    color: (0, 0, 0, 1)
+#    padding: 2, 0
+#    size: root.texture_size
+#    text_size: None, None
+#    font_name: 'meiryo.ttc'
+#    font_size: 11
+#    canvas.before:
+#        Color:
+#            rgba: (1, 1, 1, 1)
+#        Rectangle:
+#            pos: root.pos
+#            size: root.texture_size

@@ -3,9 +3,25 @@ TASK BOARD
 
 Architecture - follow the concept of the kivy
 
-
     Now I understand the touch event bubbling starts from root widget!!
     And Scatter grabs touch always, which means on_touch_up called twice for the clicked scatter widget
+
+    Full distribution vs full centralization vs partial distribution vs mixed by event
+        CURRENT DESIGN
+        1. In normal case, all on_touch_* processes should be done on root widget
+           and return True.
+           (It is because most of processes need to consider other widget status)
+        2. If needed return super() on_touch_* to propagate the touch.
+        3. Do not use super() on_touch_* outside of return statement.
+
+        May the followings be the basic rule matching concept of kivy architecture?
+        1. Return True or return super() on_touch_*.
+        2. In normal case, return super() after the class-specific process
+           and propagate it to allover the widget tree.
+        3. Return True only if you need it.
+
+    Should all SubMenu on the board?
+
 
     Make it clear what happens in which widget on what touch event
         <situations>
@@ -36,30 +52,13 @@ Architecture - follow the concept of the kivy
 
         Other actions does not matter.
 
-    Full distribution vs full centralization vs partial distribution vs mixed by event
-        CURRENT DESIGN
-        1. In normal case, all on_touch_* processes should be done on root widget
-           and return True.
-           (It is because most of processes need to consider other widget status)
-        2. If needed return super() on_touch_* to propagate the touch.
-        3. Do not use super() on_touch_* outside of return statement.
-
-        May the followings be the basic rule matching concept of kivy architecture?
-        1. Return True or return super() on_touch_*.
-        2. In normal case, return super() after the class-specific process
-           and propagate it to allover the widget tree.
-        3. Return True only if you need it.
-
-    Should all SubMenu on the board?
-
 
 
 
 User Interface - display movable window icons
 
-    Update task icon by right-click menu on TaskBoard
-    Close task icon by right-click menu on Task
-
+    Send key ctrl-f4 for excel to close a single excel workbook instead of whole excel process
+        check process name EXCEL.EXE and send key ctrl-f4 or send message wm_syscommand and sc_close
 
     Update task icon by double-click on TaskBoard
 
@@ -75,6 +74,9 @@ User Interface - display movable window icons
 
 
     <Done>
+    Update task icon by right-click menu on TaskBoard
+    Close task icon by right-click menu on Task
+
     Resolved problem for overlapped scatters
 
     Select multiple icons by dragging to move them at once
