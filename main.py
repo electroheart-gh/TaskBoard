@@ -24,7 +24,6 @@ from kivy.uix.widget import Widget
 from win32comext.shell import shell
 
 from hover import HoverBehavior
-# from tooltip import TooltipBehavior
 
 #######################################
 # Kivy Config
@@ -337,67 +336,25 @@ class Task(HoverBehavior, Scatter):
             pass
 
     def show_task_name(self):
-        if not self.showing_task_name:
-            self.showing_task_name = True
-            parent = self.parent
-            parent.remove_widget(self)
-            parent.add_widget(self)
-
-            self.label_task_name = TaskNameLabel(text=self.task_name)
-            self.add_widget(self.label_task_name)
-            # self.label_task_name.show()
-
-            # self.get_root_window().add_widget(self.label_task_name)
-            self.label_task_name.pos = self.to_widget(*Window.mouse_pos)
-            # print(Window.mouse_pos, self.to_local(*Window.mouse_pos), self.to_parent(*Window.mouse_pos))
-            # print(self.pos)
-            # self.label_task_name.texture_update()
-            # self.label_task_name.x, self.label_task_name.y = self.to_parent(*Window.mouse_pos)
-            # self.to_parent(*self.to_local(*Window.mouse_pos))
-            # self.label_task_name.x -= Window.width / 2
-            # self.label_task_name.x += self.label_task_name.texture_size[0] / 2
-            # self.label_task_name.y -= Window.height / 2
-            # self.label_task_name.x, self.label_task_name.y = 0,0
-            # print(self.label_task_name.pos)
-            # print(self.label_task_name.texture_size)
+        self.showing_task_name = True
+        self.label_task_name = TooltipLabel(text=self.task_name)
+        self.parent.add_widget(self.label_task_name)
+        self.label_task_name.pos = self.to_window(*Window.mouse_pos)
 
     def hide_task_name(self):
         if self.showing_task_name:
             self.showing_task_name = False
-            # self.get_root_window().remove_widget(self.label_task_name)
-            self.remove_widget(self.label_task_name)
-            # self.label_task_name.hide()
+            self.parent.remove_widget(self.label_task_name)
 
-    def show_tooltip(self, *args):
+    def on_hover_still(self, *args):
         self.show_task_name()
 
-    def hide_tooltip(self, *args):
+    def on_hover_around(self, *args):
         self.hide_task_name()
 
-    def on_hovered(self, instance, value):
-        if value:
-            # self.show_task_name()
-            # self.parent.tooltip = Label(text="test", pos=self.to_parent(*Window.mouse_pos))
-            # self.parent.tooltip_text = self.task_name
-            pass
-        else:
-            # self.parent.tooltip = Label(text="")
-            # self.parent.tooltip_text = ""
-            pass
 
-
-class TaskNameLabel(Label):
-    # showing_task_name = BooleanProperty(False)
-    label_task_name = ObjectProperty(None)
-
-    def show(self):
-        # self.pos = Window.mouse_pos
-        # self.get_root_window().add_widget(self)
-        Window.add_widget(self)
-        self.pos = self.to_widget(*Window.mouse_pos)
-
-    def hide(self):
-        self.get_root_window().remove_widget(self)
+class TooltipLabel(Label):
+    pass
 
 
 class TaskBoardApp(App):

@@ -1,6 +1,46 @@
 
 TASK BOARD
 
+User Interface - display movable window icons
+
+    Send key ctrl-f4 for excel to close a single excel workbook instead of whole excel process
+        check process name EXCEL.EXE and send key ctrl-f4 or send message wm_syscommand and sc_close
+
+    Update task icon by double-click on TaskBoard
+
+    Initialize task board by right double-click on TaskBoard
+    Align icons to grid
+
+
+    Scroll by mouse-wheel and dragging freely
+    Go back to start point (left-bottom) by double-click on board
+
+    scaling contents?
+    scaling icon?
+
+
+    <Done>
+    Update task icon by right-click menu on TaskBoard
+    Close task icon by right-click menu on Task
+
+    Resolved problem for overlapped scatters
+
+    Select multiple icons by dragging to move them at once
+    Resolve duplication of highlighted icon
+
+    Create, move, icons
+        Kivy Scatter widget
+
+    Initialize icons
+        build(), On_start(), on_resume()
+
+    Click Action
+        GetWindowPlacement()
+        ShowWindow()
+        SetForegroundWindow()
+
+
+
 Architecture - follow the concept of the kivy
 
     Now I understand the touch event bubbling starts from root widget!!
@@ -51,47 +91,6 @@ Architecture - follow the concept of the kivy
             enter modal mode - right click anywhere
 
         Other actions does not matter.
-
-
-
-
-User Interface - display movable window icons
-
-    Send key ctrl-f4 for excel to close a single excel workbook instead of whole excel process
-        check process name EXCEL.EXE and send key ctrl-f4 or send message wm_syscommand and sc_close
-
-    Update task icon by double-click on TaskBoard
-
-    Initialize task board by right double-click on TaskBoard
-    Align icons to grid
-
-
-    Scroll by mouse-wheel and dragging freely
-    Go back to start point (left-bottom) by double-click on board
-
-    scaling contents?
-    scaling icon?
-
-
-    <Done>
-    Update task icon by right-click menu on TaskBoard
-    Close task icon by right-click menu on Task
-
-    Resolved problem for overlapped scatters
-
-    Select multiple icons by dragging to move them at once
-    Resolve duplication of highlighted icon
-
-    Create, move, icons
-        Kivy Scatter widget
-
-    Initialize icons
-        build(), On_start(), on_resume()
-
-    Click Action
-        GetWindowPlacement()
-        ShowWindow()
-        SetForegroundWindow()
 
 
 Data Management - gather window information

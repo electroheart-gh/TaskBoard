@@ -9,9 +9,17 @@ from kivy.factory import Factory
 class HoverBehavior:
     """Kivy behavior to handle mouse hovering on a widget.
 
+    <Property>
     hover:
         True if the mouse is over the widget.
 
+    <Events>
+    on_hover_still:
+        Fired when hover on the same position for a second.
+    on_hover_around:
+        Fired when mouse position changed.
+
+    <Not implemented>
     relative:
         If True, check the mouse position by relative coordination.
 
@@ -22,6 +30,8 @@ class HoverBehavior:
     hovered = BooleanProperty(False)
 
     def __init__(self, **kwargs):
+        self.register_event_type('on_hover_still')
+        self.register_event_type('on_hover_around')
         Window.bind(mouse_pos=self.on_mouse_pos)
         super().__init__(**kwargs)
 
@@ -31,8 +41,8 @@ class HoverBehavior:
         pos = args[1]
 
         # implement tooltip behaviour
-        Clock.unschedule(self.show_tooltip)  # cancel scheduled event since I moved the cursor
-        self.hide_tooltip()  # close if it's opened
+        Clock.unschedule(self._on_hover_still)  # cancel scheduled event since I moved the cursor
+        self.dispatch('on_hover_around')  # self.hide_tooltip()  # close if it's opened
 
         if not self.collide_point(*pos):
             self.hovered = False
@@ -45,24 +55,17 @@ class HoverBehavior:
 
         self.hovered = True
         # implement tooltip behaviour
-        Clock.schedule_once(self.show_tooltip, 1)
+        Clock.schedule_once(self._on_hover_still, 1)
 
         return self.hovered
 
-        # if self.collide_point(*pos):
-        #     for wid in self.walk():
-        #         if wid is not self and issubclass(type(wid), HoverBehavior) and wid.collide_point(*pos):
-        #             self.hovered = False
-        #             break
-        #     else:
-        #         self.hovered = True
-        # else:
-        #     self.hovered = False
+    def _on_hover_still(self, *args):
+        self.dispatch('on_hover_still')
 
-    def show_tooltip(self, *args):
+    def on_hover_still(self, *args):
         pass
 
-    def hide_tooltip(self, *args):
+    def on_hover_around(self, *args):
         pass
 
 
