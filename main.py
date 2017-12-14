@@ -6,9 +6,7 @@ import os
 import win32api
 import win32con
 import win32gui
-
 import win32ui
-
 import win32process
 
 from kivy.app import App
@@ -158,8 +156,6 @@ class Board(FloatLayout):
             tsk = Task(window_handle=wh, task_name=win32gui.GetWindowText(wh), icon_source=get_icon_from_window(wh))
             tsk.pos = self.propose_pos()
             self.add_widget(tsk)
-
-            Window.bind(focus=self.refresh)
 
     def restart(self, *args):
         """Restart the Task Board"""
@@ -311,6 +307,7 @@ class Task(HoverBehavior, Scatter):
     def set_foreground_task(self):
         """Set the task to foreground regardless of the window state."""
 
+        self.hide_task_name()
         try:
             # Get window status
             placement = win32gui.GetWindowPlacement(self.window_handle)
@@ -328,6 +325,7 @@ class Task(HoverBehavior, Scatter):
             pass
 
     def close_task(self):
+        self.hide_task_name()
         try:
             self.set_foreground_task()
             win32gui.PostMessage(self.window_handle, win32con.WM_CLOSE, 0, 0)
@@ -338,8 +336,9 @@ class Task(HoverBehavior, Scatter):
     def show_task_name(self):
         self.showing_task_name = True
         self.label_task_name = TooltipLabel(text=self.task_name)
-        self.parent.add_widget(self.label_task_name)
-        self.label_task_name.pos = self.to_window(*Window.mouse_pos)
+        if self.parent:
+            self.parent.add_widget(self.label_task_name)
+            self.label_task_name.pos = self.to_window(*Window.mouse_pos)
 
     def hide_task_name(self):
         if self.showing_task_name:
@@ -361,9 +360,11 @@ class TaskBoardApp(App):
     def build(self):
         # Config the Window
         Window.maximize()
+        Window.bind(focus=self.root.refresh)
 
         # Attaching task labels on the board.
         self.root.refresh()
+
         return self.root
 
 
