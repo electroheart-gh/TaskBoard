@@ -302,12 +302,10 @@ class Task(HoverBehavior, Scatter):
     selected = BooleanProperty(False)
     sub_menu = ObjectProperty(None)
     label_task_name = ObjectProperty(None)
-    showing_task_name = BooleanProperty(False)
 
     def set_foreground_task(self):
         """Set the task to foreground regardless of the window state."""
 
-        self.hide_task_name()
         try:
             # Get window status
             placement = win32gui.GetWindowPlacement(self.window_handle)
@@ -325,7 +323,6 @@ class Task(HoverBehavior, Scatter):
             pass
 
     def close_task(self):
-        self.hide_task_name()
         try:
             self.set_foreground_task()
             win32gui.PostMessage(self.window_handle, win32con.WM_CLOSE, 0, 0)
@@ -334,22 +331,25 @@ class Task(HoverBehavior, Scatter):
             pass
 
     def show_task_name(self):
-        self.showing_task_name = True
         self.label_task_name = TooltipLabel(text=self.task_name)
         if self.parent:
             self.parent.add_widget(self.label_task_name)
             self.label_task_name.pos = self.to_window(*Window.mouse_pos)
 
     def hide_task_name(self):
-        if self.showing_task_name:
-            self.showing_task_name = False
-            self.parent.remove_widget(self.label_task_name)
+        if isinstance(self.label_task_name, Label):
+            self.label_task_name.parent.remove_widget(self.label_task_name)
+            self.label_task_name = object()
 
     def on_hover_still(self, *args):
         self.show_task_name()
 
     def on_hover_around(self, *args):
         self.hide_task_name()
+
+    def on_parent(self, *args):
+        if self.parent is None:
+            self.hide_task_name()
 
 
 class TooltipLabel(Label):
