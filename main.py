@@ -8,6 +8,7 @@ import win32con
 import win32gui
 import win32ui
 import win32process
+import win32com.client
 
 from kivy.app import App
 from kivy.core.window import Window
@@ -117,6 +118,13 @@ def get_hicon_from_exe(hwnd):
     hicon, iicon, dwattr, name, typename = info
 
     return hicon
+
+
+def get_exe_path(hwnd):
+    tid, pid = win32process.GetWindowThreadProcessId(hwnd)
+    hprc = win32api.OpenProcess(win32con.PROCESS_QUERY_INFORMATION | win32con.PROCESS_VM_READ, 0, pid)
+    path = win32process.GetModuleFileNameEx(hprc, 0)
+    return path
 
 
 #######################################
@@ -325,7 +333,21 @@ class Task(HoverBehavior, Scatter):
     def close_task(self):
         try:
             self.set_foreground_task()
-            win32gui.PostMessage(self.window_handle, win32con.WM_CLOSE, 0, 0)
+            exe = get_exe_path(self.window_handle)  # type: str
+
+            # if exe.casefold().endswith("soffice.bin"):
+            if exe.casefold().endswith("excel.exe"):
+                # win32api.PostMessage(self.window_handle, win32con.WM_KEYDOWN, win32con.VK_CONTROL, 0)
+                # win32api.PostMessage(self.window_handle, win32con.WM_KEYDOWN, win32con.VK_F4, 0)
+                # win32api.PostMessage(self.window_handle, win32con.WM_KEYUP, win32con.VK_F4, 0)
+                # win32api.PostMessage(self.window_handle, win32con.WM_KEYUP, win32con.VK_CONTROL, 0)
+
+                # wsh = win32com.client.Dispatch("WScript.Shell")
+                # wsh.SendKeys('^{F4}')
+
+                win32gui.PostMessage(self.window_handle, win32con.WM_SYSCOMMAND, win32con.SC_CLOSE, 0)
+            else:
+                win32gui.PostMessage(self.window_handle, win32con.WM_CLOSE, 0, 0)
 
         except pywintypes.error:
             pass
