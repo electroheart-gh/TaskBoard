@@ -335,17 +335,9 @@ class Task(HoverBehavior, Scatter):
             self.set_foreground_task()
             exe = get_exe_path(self.window_handle)  # type: str
 
-            # if exe.casefold().endswith("soffice.bin"):
             if exe.casefold().endswith("excel.exe"):
-                # win32api.PostMessage(self.window_handle, win32con.WM_KEYDOWN, win32con.VK_CONTROL, 0)
-                # win32api.PostMessage(self.window_handle, win32con.WM_KEYDOWN, win32con.VK_F4, 0)
-                # win32api.PostMessage(self.window_handle, win32con.WM_KEYUP, win32con.VK_F4, 0)
-                # win32api.PostMessage(self.window_handle, win32con.WM_KEYUP, win32con.VK_CONTROL, 0)
-
-                # wsh = win32com.client.Dispatch("WScript.Shell")
-                # wsh.SendKeys('^{F4}')
-
-                win32gui.PostMessage(self.window_handle, win32con.WM_SYSCOMMAND, win32con.SC_CLOSE, 0)
+                wsh = win32com.client.Dispatch("WScript.Shell")
+                wsh.SendKeys('^{F4}')
             else:
                 win32gui.PostMessage(self.window_handle, win32con.WM_CLOSE, 0, 0)
 
