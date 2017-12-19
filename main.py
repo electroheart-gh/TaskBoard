@@ -137,6 +137,10 @@ class Board(FloatLayout):
     select_box = ObjectProperty(None)
     sub_menu = ObjectProperty(None)
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        Window.bind(focus=self.refresh)
+
     def propose_pos(self):
         try:
             prop_y, prop_x = max([(c.y, c.right) for c in self.children if type(c) == Task])
@@ -202,7 +206,8 @@ class Board(FloatLayout):
                 # If clicking on any task, break without drawing the select box
                 return super().on_touch_down(touch)
         else:
-            # If clicking on the board, minimize the select box to redraw and deselect all tasks
+            # If clicking on the board, refresh and minimize the select box to redraw and deselect all tasks
+            self.refresh()
             self.selecting = True
             self.select_box = SelectBox(size=(0, 0))
             self.add_widget(self.select_box)
@@ -311,6 +316,11 @@ class Task(HoverBehavior, Scatter):
     sub_menu = ObjectProperty(None)
     label_task_name = ObjectProperty(None)
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        Window.bind(mouse_pos=lambda *x: self.hide_task_name())
+        Window.bind(focus=lambda *x: self.hide_task_name())
+
     def set_foreground_task(self):
         """Set the task to foreground regardless of the window state."""
 
@@ -358,9 +368,6 @@ class Task(HoverBehavior, Scatter):
     def on_hover_still(self, *args):
         self.show_task_name()
 
-    def on_hover_around(self, *args):
-        self.hide_task_name()
-
     def on_parent(self, *args):
         if self.parent is None:
             self.hide_task_name()
@@ -374,7 +381,6 @@ class TaskBoardApp(App):
     def build(self):
         # Config the Window
         Window.maximize()
-        Window.bind(focus=self.root.refresh)
 
         # Attaching task labels on the board.
         self.root.refresh()

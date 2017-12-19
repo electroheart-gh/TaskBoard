@@ -1,7 +1,7 @@
 """Hover Behaviour
 """
 
-from kivy.properties import BooleanProperty, ObjectProperty, Clock
+from kivy.properties import BooleanProperty, ObjectProperty, Clock, NumericProperty
 from kivy.core.window import Window
 from kivy.factory import Factory
 
@@ -28,6 +28,7 @@ class HoverBehavior:
     """
 
     hovered = BooleanProperty(False)
+    hover_still_time = NumericProperty(0.5)
 
     def __init__(self, **kwargs):
         self.register_event_type('on_hover_still')
@@ -55,7 +56,7 @@ class HoverBehavior:
 
         self.hovered = True
         # implement tooltip behaviour
-        Clock.schedule_once(self._on_hover_still, 1)
+        Clock.schedule_once(self._on_hover_still, self.hover_still_time)
 
         return self.hovered
 
