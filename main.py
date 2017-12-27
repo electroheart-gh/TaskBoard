@@ -361,7 +361,7 @@ class Task(HoverBehavior, Scatter):
             self.label_task_name.pos = self.to_window(*Window.mouse_pos)
 
     def hide_task_name(self):
-        if isinstance(self.label_task_name, Label):
+        if isinstance(self.label_task_name, Label) and self.label_task_name.parent:
             self.label_task_name.parent.remove_widget(self.label_task_name)
             self.label_task_name = object()
 
