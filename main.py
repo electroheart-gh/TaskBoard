@@ -2,6 +2,7 @@ import pywintypes
 from kivy.config import Config
 
 import os
+import configparser
 
 import win32api
 import win32con
@@ -51,6 +52,10 @@ SW_SHOWMINIMIZED = win32con.SW_SHOWMINIMIZED
 TASK_WIDTH = 100
 TASK_HEIGHT = 50
 INITIAL_PLACE_HEIGT = 100
+SAVEFILE = "taskboard.dat"
+SF_OPT_TASK_NAME = "task name"
+SF_OPT_POSITION = "position"
+WINDOWS_ENCODING = "cp932"
 
 
 #######################################
@@ -110,21 +115,36 @@ def get_icon_from_window(hwnd):
 
 
 def get_hicon_from_exe(hwnd):
-    tid, pid = win32process.GetWindowThreadProcessId(hwnd)
-    hprc = win32api.OpenProcess(win32con.PROCESS_QUERY_INFORMATION | win32con.PROCESS_VM_READ, 0, pid)
-    path = win32process.GetModuleFileNameEx(hprc, 0)
+    try:
+        tid, pid = win32process.GetWindowThreadProcessId(hwnd)
+        hprc = win32api.OpenProcess(win32con.PROCESS_QUERY_INFORMATION | win32con.PROCESS_VM_READ, 0, pid)
+        path = win32process.GetModuleFileNameEx(hprc, 0)
 
-    ret, info = shell.SHGetFileInfo(path, 0, SHGFI_ICONLOCATION | SHGFI_ICON | SHIL_EXTRALARGE)
-    hicon, iicon, dwattr, name, typename = info
+        ret, info = shell.SHGetFileInfo(path, 0, SHGFI_ICONLOCATION | SHGFI_ICON | SHIL_EXTRALARGE)
+        hicon, iicon, dwattr, name, typename = info
+
+    except pywintypes.error:
+        hicon = None
 
     return hicon
 
 
 def get_exe_path(hwnd):
-    tid, pid = win32process.GetWindowThreadProcessId(hwnd)
-    hprc = win32api.OpenProcess(win32con.PROCESS_QUERY_INFORMATION | win32con.PROCESS_VM_READ, 0, pid)
-    path = win32process.GetModuleFileNameEx(hprc, 0)
+    try:
+        tid, pid = win32process.GetWindowThreadProcessId(hwnd)
+        hprc = win32api.OpenProcess(win32con.PROCESS_QUERY_INFORMATION | win32con.PROCESS_VM_READ, 0, pid)
+        path = win32process.GetModuleFileNameEx(hprc, 0)
+
+    except pywintypes.error:
+        path = None
+
     return path
+
+
+def get_window_text_decoded(hwnd):
+    text = win32gui.GetWindowText(hwnd)
+    text = text.encode(WINDOWS_ENCODING, "ignore")
+    return text.decode(WINDOWS_ENCODING)
 
 
 #######################################
@@ -141,7 +161,17 @@ class Board(FloatLayout):
         super().__init__(**kwargs)
         Window.bind(focus=self.refresh)
 
-    def propose_pos(self):
+    def propose_pos(self, hwnd=None, tn=None):
+        if hwnd:
+            window_handle = str(hwnd)
+            task_name = str(tn)
+            config = configparser.ConfigParser()
+            config.read(SAVEFILE)
+            if config.has_option(window_handle, SF_OPT_TASK_NAME):
+                if config[window_handle][SF_OPT_TASK_NAME] == task_name:
+                    if config.has_option(window_handle, SF_OPT_POSITION):
+                        return eval(config[window_handle][SF_OPT_POSITION])
+
         try:
             prop_y, prop_x = max([(c.y, c.right) for c in self.children if type(c) == Task])
         except ValueError:
@@ -153,21 +183,37 @@ class Board(FloatLayout):
 
         return prop_x, max(prop_y, INITIAL_PLACE_HEIGT)
 
-    def refresh(self, *args):
+    def save_pos(self):
+        config = configparser.ConfigParser()
+        for c in self.children:
+            if isinstance(c, Task):
+                option_name = str(c.window_handle)
+                config[option_name] = {}
+                config[option_name][SF_OPT_TASK_NAME] = str(c.task_name)
+                config[option_name][SF_OPT_POSITION] = str(c.pos)
+
+        with open(SAVEFILE, 'w') as save_file:
+            config.write(save_file)
+
+    def refresh(self, save_pos=True, *args):
         """According to the windows status, add or remove the tasks, and update the task_name."""
 
         new_hwnd_set = set(get_task_list_as_hwnd())
         for c in filter(lambda x: isinstance(x, Task), self.children[:]):
             if c.window_handle in new_hwnd_set:
                 new_hwnd_set.remove(c.window_handle)
-                c.task_name = win32gui.GetWindowText(c.window_handle)
+                # c.task_name = win32gui.GetWindowText(c.window_handle)
+                c.task_name = get_window_text_decoded(c.window_handle)
             else:
                 self.remove_widget(c)
 
         for wh in new_hwnd_set:
-            tsk = Task(window_handle=wh, task_name=win32gui.GetWindowText(wh), icon_source=get_icon_from_window(wh))
-            tsk.pos = self.propose_pos()
+            tsk = Task(window_handle=wh, task_name=get_window_text_decoded(wh), icon_source=get_icon_from_window(wh))
+            tsk.pos = self.propose_pos(tsk.window_handle, tsk.task_name)
             self.add_widget(tsk)
+
+        if save_pos:
+            self.save_pos()
 
     def restart(self, *args):
         """Restart the Task Board"""
