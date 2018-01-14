@@ -68,6 +68,7 @@ def get_task_list_as_hwnd():
         - Visible
         - Non child, which means it does not have the owner window
         - Non untitled system window, which means it is not a window like the property window"""
+    print("begin get_task_list_as_hwnd")
 
     # Callback function
     # Append the window handle to the outer scope var 'task_list_as_hwnd', if it should be the task.
@@ -79,6 +80,7 @@ def get_task_list_as_hwnd():
     # main logic
     task_list_as_hwnd = []
     win32gui.EnumWindows(accumulate_hwnd_for_task, None)
+    print("finish get_task_list_as_hwnd")
     return task_list_as_hwnd
 
 
@@ -87,6 +89,7 @@ def get_icon_from_window(hwnd):
 
     Actually, it is not unclear how the Windows API works to retrieve the icon info and save it as icon.
     """
+    print("begin get_icon_from_window")
     hicon = win32api.SendMessage(hwnd, win32con.WM_GETICON, win32con.ICON_BIG)
     if hicon == 0:
         hicon = win32api.SendMessage(hwnd, win32con.WM_GETICON, win32con.ICON_SMALL)
@@ -110,10 +113,13 @@ def get_icon_from_window(hwnd):
     temp_dir = os.getenv("temp")
     file_path = temp_dir + "\Icontemp" + str(hwnd) + ".bmp"
     hbmp.SaveBitmapFile(hdc, file_path)
+
+    print("finish get_icon_from_window")
     return file_path
 
 
 def get_hicon_from_exe(hwnd):
+    print("begin get_hicon_from_exe")
     try:
         tid, pid = win32process.GetWindowThreadProcessId(hwnd)
         hprc = win32api.OpenProcess(win32con.PROCESS_QUERY_INFORMATION | win32con.PROCESS_VM_READ, 0, pid)
@@ -125,10 +131,12 @@ def get_hicon_from_exe(hwnd):
     except pywintypes.error:
         hicon = None
 
+    print("finish get_hicon_from_exe")
     return hicon
 
 
 def get_exe_path(hwnd):
+    print("begin get_exe_path")
     try:
         tid, pid = win32process.GetWindowThreadProcessId(hwnd)
         hprc = win32api.OpenProcess(win32con.PROCESS_QUERY_INFORMATION | win32con.PROCESS_VM_READ, 0, pid)
@@ -137,12 +145,15 @@ def get_exe_path(hwnd):
     except pywintypes.error:
         path = None
 
+    print("finish get_exe_path")
     return path
 
 
 def get_window_text_decoded(hwnd):
+    print("begin get_window_text_decoded")
     text = win32gui.GetWindowText(hwnd)
     text = text.encode(WINDOWS_ENCODING, "ignore")
+    print("finish get_window_text_decoded")
     return text.decode(WINDOWS_ENCODING)
 
 
@@ -197,6 +208,7 @@ class Board(FloatLayout):
     def refresh(self, save_pos=True, *args):
         """According to the windows status, add or remove the tasks, and update the task_name."""
 
+        print("Begin refresh")
         new_hwnd_set = set(get_task_list_as_hwnd())
         for c in filter(lambda x: isinstance(x, Task), self.children[:]):
             if c.window_handle in new_hwnd_set:
@@ -212,6 +224,8 @@ class Board(FloatLayout):
 
         if save_pos:
             self.save_pos()
+
+        print("Finish refresh")
 
     def restart(self, *args):
         """Restart the Task Board"""
@@ -368,6 +382,7 @@ class Task(HoverBehavior, Scatter):
     def set_foreground_task(self):
         """Set the task to foreground regardless of the window state."""
 
+        print("begin set_foreground_task")
         try:
             # Get window status
             placement = win32gui.GetWindowPlacement(self.window_handle)
@@ -381,10 +396,13 @@ class Task(HoverBehavior, Scatter):
                     win32gui.ShowWindow(self.window_handle, win32con.SW_RESTORE)
             win32gui.SetForegroundWindow(self.window_handle)
 
+            print("finish set_foreground_task")
+
         except pywintypes.error:
             pass
 
     def close_task(self):
+        print("begin close_task")
         try:
             self.set_foreground_task()
             exe = get_exe_path(self.window_handle)  # type: str
@@ -394,6 +412,8 @@ class Task(HoverBehavior, Scatter):
                 wsh.SendKeys('^{F4}')
             else:
                 win32gui.PostMessage(self.window_handle, win32con.WM_CLOSE, 0, 0)
+
+            print("finish close_task")
 
         except pywintypes.error:
             pass

@@ -1,4 +1,6 @@
 """Hover Behaviour
+    Original code:
+        https://gist.github.com/opqopq/15c707dc4cffc2b6455f
 """
 
 from kivy.properties import BooleanProperty, ObjectProperty, Clock, NumericProperty
