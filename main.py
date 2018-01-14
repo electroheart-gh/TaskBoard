@@ -15,7 +15,6 @@ from kivy.app import App
 from kivy.core.window import Window
 from kivy.animation import Animation
 from kivy.properties import StringProperty, ObjectProperty, NumericProperty, BooleanProperty, ListProperty
-from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.label import Label
 from kivy.uix.modalview import ModalView
@@ -202,7 +201,6 @@ class Board(FloatLayout):
         for c in filter(lambda x: isinstance(x, Task), self.children[:]):
             if c.window_handle in new_hwnd_set:
                 new_hwnd_set.remove(c.window_handle)
-                # c.task_name = win32gui.GetWindowText(c.window_handle)
                 c.task_name = get_window_text_decoded(c.window_handle)
             else:
                 self.remove_widget(c)
@@ -350,9 +348,9 @@ class Task(HoverBehavior, Scatter):
     """
 
     # super class's kivy property
-    do_rotation = False
     # do_translation = False
     # do_scale = False
+    do_rotation = False
 
     # kivy property
     window_handle = NumericProperty(0)
@@ -435,8 +433,16 @@ class TaskBoardApp(App):
 
 
 #######################################
+# Force utf-8
+#######################################
+# with open("TaskBoard.kv", encoding="utf-8") as fd:
+#     file_data = fd.read()
+#
+# Builder.load_string(file_data)
+
+
+#######################################
 # Run myself
 #######################################
-
 if __name__ == '__main__':
     TaskBoardApp().run()

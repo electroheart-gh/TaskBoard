@@ -51,13 +51,12 @@ Board:
         Label:
             id: label
             text: root.task_name
+            color: (0, 1, 0, 1) if 'ì«Ç›éÊÇËêÍóp' in root.task_name else (1, 1, 1, 1)
             size_hint_y: 0.5
             valign: 'top'
             halign: 'center'
             text_size: self.size
-#            text_size: (None, None) if root.hovered else self.size
-            font_name: 'meiryo.ttc'
-#            font_name: 'msgothic.ttc'
+            font_name: 'meiryo.ttc'  # 'msgothic.ttc'
             font_size: 11
 
 <MenuModal>
