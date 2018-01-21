@@ -31,6 +31,7 @@ class HoverBehavior:
 
     hovered = BooleanProperty(False)
     hover_still_time = NumericProperty(0.5)
+    hover_timer = ObjectProperty()
 
     def __init__(self, **kwargs):
         self.register_event_type('on_hover_still')
@@ -44,7 +45,8 @@ class HoverBehavior:
         pos = args[1]
 
         # implement tooltip behaviour
-        Clock.unschedule(self._on_hover_still)  # cancel scheduled event since I moved the cursor
+        if self.hover_timer:
+            Clock.unschedule(self.hover_timer)  # cancel scheduled event since I moved the cursor
         self.dispatch('on_hover_around')  # self.hide_tooltip()  # close if it's opened
 
         if not self.collide_point(*pos):
@@ -58,7 +60,7 @@ class HoverBehavior:
 
         self.hovered = True
         # implement tooltip behaviour
-        Clock.schedule_once(self._on_hover_still, self.hover_still_time)
+        self.hover_timer = Clock.schedule_once(self._on_hover_still, self.hover_still_time)
 
         return self.hovered
 
