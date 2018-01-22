@@ -46,19 +46,19 @@ class HoverBehavior:
 
         # implement tooltip behaviour
         if self.hover_timer:
-            Clock.unschedule(self.hover_timer)  # cancel scheduled event since I moved the cursor
-        self.dispatch('on_hover_around')  # self.hide_tooltip()  # close if it's opened
+            self.hover_timer.cancel()
+
+        self.dispatch('on_hover_around')
 
         if not self.collide_point(*pos):
             self.hovered = False
             return self.hovered
-
         for wid in self.walk():
             if wid is not self and issubclass(type(wid), HoverBehavior) and wid.collide_point(*pos):
                 self.hovered = False
                 return self.hovered
-
         self.hovered = True
+
         # implement tooltip behaviour
         self.hover_timer = Clock.schedule_once(self._on_hover_still, self.hover_still_time)
 
